@@ -1,3 +1,30 @@
+How to run the backend server:
+
+1. Ensure you have Python 3.8+ installed on your machine.
+2. Create a virtual environment:
+   ```bash
+   python -m venv venv
+   ```
+3. Activate the virtual environment:
+   - On Windows:
+     ```bash
+     venv\Scripts\activate
+     ```
+   - On macOS/Linux:
+     ```bash
+     source venv/bin/activate
+     ```
+4. Install the required dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+5. Run the Flask development server:
+   ```bash
+   python app.py
+   ```
+   
+
+
 **Backlogs**
 
 - Transaction ID 
