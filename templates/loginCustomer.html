@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PARKFLOW Login</title>
+    <link rel="stylesheet" href="loginAdmin.css" />
+  </head>
+
+  <body>
+    <div class="container">
+      <div class="login-box">
+        <div class="logo">
+          <h2>PARKFLOW</h2>
+        </div>
+
+        <h3>WELCOME BACK!</h3>
+        <p class="small-text">Login as<br /><br /></p>
+        <p class="admin-text">Customer</p>
+
+        <form id="loginForm">
+            <input type="email" id="email" placeholder="Email" required maxlength="255"/>
+            <input type="password" id="password" placeholder="Password" required maxlength="128"/>
+            <button type="submit" class="loginbtn" style="border:none; cursor:pointer; width:100%;">Login</button>
+        </form>
+      </div>
+    </div>
+
+<script src="./js/config.js"></script>
+<script>
+  document.getElementById('loginForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+
+    if (email.length > 255 || password.length > 128 || /[\x00\r\n]/.test(email)) {
+      alert("Rejection: Security check failed.");
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+      alert("Rejection: Email format invalid.");
+      return;
+    }
+
+    console.log("Attempting login with", email, password);
+    fetchData('login', 'POST', { email: email, password: password })
+      .then(response => {
+        console.log("Login response:", response);
+        if (response.success) {
+          window.location.href = 'livemap.html';
+        } else {
+          alert("Login failed: " + response.message);
+        }
+      })
+      .catch(error => {
+        console.error("Login error:", error);
+        alert("Invalid email or password. Please try again.");
+      });
+  });
+</script>

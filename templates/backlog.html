@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="backlog.css" />
+    <title>ParkFlow Backlog</title>
+  </head>
+
+  <body>
+    <div class="top-bar">
+      <div class="logo-container">
+        <img src="assets/car-logo.png" class="car-logo" />
+        <span class="title">PARKFLOW</span>
+      </div>
+
+      <div class="center-title">Transaction Backlog</div>
+
+      <div class="nav-buttons">
+        <a href="AdminLiveMap.html" class="nav-btn">Live Map</a>
+        <a href="dashboard.html" class="nav-btn">Dashboard</a>
+        <a href="index.html" class="nav-btn">Logout</a>
+      </div>
+    </div>
+
+    <div class="container">
+      <div class="backlog-table-container">
+        <table id="transaction-table">
+          <thead>
+            <tr>
+              <th>Transaction ID</th>
+              <th>Time In</th>
+              <th>Parking Duration</th>
+              <th>Slot Taken</th>
+              <th>Rate (P)</th>
+              <th>Plate Number</th>
+              <th>Vehicle Model</th>
+            </tr>
+          </thead>
+          <tbody>
+            </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script src="./js/config.js"></script>
+    <script>
+
+      async function getAllTransactions() {
+        try {
+          const response = await fetchData('/getAllTransactions', 'GET');
+          return response.transactions || [];
+        } catch (error) {
+          console.error('Error fetching transactions from API:', error);
+          return [];
+        }
+      }
+
+      async function loadBacklog() {
+        const tableBody = document.querySelector('#transaction-table tbody');
+        tableBody.innerHTML = '';
+
+        const transactions = await getAllTransactions();
+        console.log('Fetched transactions from API:', transactions);
+
+        // try {
+        //   const storedTransactions = localStorage.getItem('parkflowTransactions');
+        //   if (storedTransactions) {
+        //     transactions = JSON.parse(storedTransactions);
+        //   }
+        // } catch (error) {
+        //   console.error('Error loading transactions from localStorage:', error);
+        //   transactions = []; 
+        // }
+
+        if (transactions.length === 0) {
+          const noDataRow = tableBody.insertRow();
+          const cell = noDataRow.insertCell();
+          cell.colSpan = 7; 
+          cell.textContent = 'No completed transactions found.';
+          cell.style.textAlign = 'center';
+          cell.style.padding = '20px';
+          return;
+        }
+
+
+        // transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        transactions.forEach((tx) => {
+          console.log('Processing transaction:', tx);
+          console.log('Timestamp:', tx.time_in);
+          const row = tableBody.insertRow();
+          const timeIn = new Date(tx.time_in);
+
+          // const timeOut = new Date(timeIn.getTime() + (tx.duration.match(/\d+/) * 60 * 60 * 1000));
+          
+          const formattedTimeIn = timeIn.toLocaleString();
+
+          // const durationDisplay = tx.duration.trim();
+
+          row.insertCell().textContent = tx.transaction_id;
+          row.insertCell().textContent = formattedTimeIn;
+          row.insertCell().textContent = tx.duration;
+          row.insertCell().textContent = tx.slot_id;
+          row.insertCell().textContent = 'P' + tx.rate;
+          row.insertCell().textContent = tx.plate_number;
+          row.insertCell().textContent = tx.vehicle_model;
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', loadBacklog);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Parkflow Confirmation</title>
+    <link rel="stylesheet" href="receipt.css" />
+  </head>
+  <body>
+    <header class="navbar">
+      <div class="logo-section">
+        <img
+          src="https://placehold.co/32x32/102a43/ffffff?text=P"
+          class="car-logo"
+          onerror="this.onerror=null; this.src='https://placehold.co/32x32/102a43/ffffff?text=P';"
+        />
+        <span class="app-name">PARKFLOW</span>
+      </div>
+
+      <a href="payment.html" class="back-button">Back</a>
+    </header>
+
+    <main class="content">
+      <h1 class="thank-you-header" id="receipt-main-header">THANK YOU!</h1>
+
+      <div class="detail-card">
+        <h2 style="color: white; margin-bottom: 20px; text-align: center">
+          OFFICIAL RECEIPT
+        </h2>
+        <p class="detail-line" id="receipt-txn-id">
+          <strong>Transaction ID:</strong> Loading...
+        </p>
+        <p class="detail-line" id="receipt-plate">
+          <strong>Plate Number:</strong> 123 ABC
+        </p>
+        <p class="detail-line" id="receipt-model">Vehicle Model: Loading...</p>
+        <p class="detail-line" id="receipt-slot">
+          Parking slot number: Loading...
+        </p>
+        <p class="detail-line" id="receipt-hours">
+          Parking Duration: Loading...
+        </p>
+        <p class="detail-line total-amount" id="receipt-total">
+          Total Paid: P0.00
+        </p>
+      </div>
+    </main>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const transactionJson = localStorage.getItem("currentTransaction");
+        if (transactionJson) {
+          const transaction = JSON.parse(transactionJson);
+          document.getElementById(
+            "receipt-txn-id"
+          ).innerHTML = `<strong>Transaction ID:</strong> ${transaction.transactionId}`;
+          document.getElementById(
+            "receipt-plate"
+          ).innerHTML = `<strong>Plate Number:</strong> ${transaction.plateNumber}`;
+          document.getElementById("receipt-model").textContent = `Vehicle Model: ${transaction.vehicleModel}`;
+          document.getElementById("receipt-slot").textContent = `Parking slot number: ${transaction.slotNumber}`;
+          document.getElementById("receipt-hours").textContent = `Parking Duration: ${transaction.parkingHours} Hour(s)`;
+          const formattedTotal = new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+          }).format(transaction.totalAmount);
+          document.getElementById(
+            "receipt-total"
+          ).innerHTML = `Total Paid: ${formattedTotal}`;
+        } else {
+          document.getElementById("receipt-main-header").textContent =
+            "RECEIPT ERROR";
+          document.querySelector(
+            ".detail-card"
+          ).innerHTML = `<p class='detail-line' style='color: red; text-align: center;'>No transaction data found. Please try the payment process again.</p>
+                             <a href="payment.html" class="back-button" style="margin-top: 20px;">Go to Payment</a>`;
+        }
+      });
+    </script>
+  </body>
+</html>

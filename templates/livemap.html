@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="livemap.css" />
+    <title>ParkFlow Live Map</title>
+  </head>
+
+  <body>
+    <div class="top-bar">
+      <div class="logo-container">
+        <img src="assets/car-logo.png" class="car-logo" />
+        <span class="title">PARKFLOW</span>
+      </div>
+
+      <div class="center-title">Live Map (Customer View)</div>
+
+      <div class="nav-buttons">
+        <a href="payment.html" class="nav-btn">Payment</a>
+        <a href="index.html" class="nav-btn">Logout</a>
+      </div>
+    </div>
+
+    <div class="map-container">
+      <img src="assets/parking_lot.png" alt="Parking Lot" class="parking-lot" />
+      
+      <div class="parking-grid" id="customer-parking-grid">
+          <div class="park-slot available" id="slot-1" data-slot-name="A1">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A1</p>
+          </div>
+          <div class="park-slot available" id="slot-2" data-slot-name="A2">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A2</p>
+          </div>
+          <div class="park-slot available" id="slot-3" data-slot-name="A3">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A3</p>
+          </div>
+          <div class="park-slot available" id="slot-4" data-slot-name="A4">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A4</p>
+          </div>
+          <div class="park-slot available" id="slot-5" data-slot-name="A5">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A5</p>
+          </div>
+          <div class="park-slot available" id="slot-6" data-slot-name="A6">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A6</p>
+          </div>
+          <div class="park-slot available" id="slot-7" data-slot-name="A7">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A7</p>
+          </div>
+          <div class="park-slot available" id="slot-8" data-slot-name="A8">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A8</p>
+          </div>
+          <div class="park-slot available" id="slot-9" data-slot-name="A9">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A9</p>
+          </div>
+          <div class="park-slot available" id="slot-10" data-slot-name="A10">
+              <img src="assets/car.png" class="car-on-slot" alt="Car" style="display: none;">
+              <p class="slot-name">A10</p>
+          </div>
+      </div>
+    </div>
+    
+    <script src="./js/config.js"></script>
+    <script>
+        const totalSlots = 10;
+        
+        async function getSlotStates() {
+            try {
+                const response = await fetchData('/parkingSlots', 'GET');
+
+                return response.parking_slots;
+            } catch (error) {
+                console.error('Error fetching slot states from API:', error);
+            }
+            // const storedState = localStorage.getItem('parkflowSlotStates');
+            // return storedState ? JSON.parse(storedState) : Array(totalSlots).fill({ status: 'available' });
+        }
+
+        async function loadCustomerMap() {
+            const states = await getSlotStates();
+            console.log('Loading map with states:', states);
+            for (let i = 1; i <= totalSlots; i++) {
+                const slotNumber = `A${i}`;
+                const state = states.find(s => s.slot_number === slotNumber);
+                if (!state) {
+                    console.error(`Slot ${slotNumber} not found in API response`);
+                    continue;
+                }
+                const slotElement = document.getElementById(`slot-${i}`);
+                if (slotElement) {
+                    slotElement.className = `park-slot ${state.status}`;
+                    const carLogo = slotElement.querySelector('.car-on-slot');
+                    carLogo.style.display = state.status === 'taken' ? 'block' : 'none';
+                }
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", loadCustomerMap);
+    </script>
+  </body>
+</html>

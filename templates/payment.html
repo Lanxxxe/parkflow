@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="payment.css" />
+    <title>Parking Rates & Payment</title>
+  </head>
+  <body>
+    <div class="top-bar">
+      <div class="logo-container">
+        <img src="assets/car-logo.png" class="car-logo" />
+        <span class="title">PARKFLOW</span>
+      </div>
+
+      <span class="page-title">Parking Rates & Payment</span>
+
+      <a href="livemap.html" class="back-btn">Back</a>
+    </div>
+
+    <div class="container">
+      <div class="rates-box">
+        <div class="rate-item available-rate" data-duration="1" data-price="50">
+          <span>1 HOUR:</span>
+          <strong>P50</strong>
+        </div>
+        <div class="rate-item available-rate" data-duration="2" data-price="100">
+          <span>2 HOUR:</span>
+          <strong>P100</strong>
+        </div>
+        <div class="rate-item available-rate" data-duration="3" data-price="150">
+          <span>3 HOUR:</span>
+          <strong>P150</strong>
+        </div>
+        <div class="rate-item available-rate" data-duration="4" data-price="200">
+          <span>4 HOUR:</span>
+          <strong>P200</strong>
+        </div>
+      </div>
+
+      <div class="slots-box">
+        <h3 class="slots-header">Available Slots</h3>
+        <div class="slots-grid" id="payment-slots-grid">
+          <button class="slot available" data-slot-id="Slot 1" data-slot-code="A1">Slot 1</button>
+          <button class="slot available" data-slot-id="Slot 2" data-slot-code="A2">Slot 2</button>
+          <button class="slot available" data-slot-id="Slot 3" data-slot-code="A3">Slot 3</button>
+          <button class="slot available" data-slot-id="Slot 4" data-slot-code="A4">Slot 4</button>
+          <button class="slot available" data-slot-id="Slot 5" data-slot-code="A5">Slot 5</button>
+          <button class="slot available" data-slot-id="Slot 6" data-slot-code="A6">Slot 6</button>
+          <button class="slot available" data-slot-id="Slot 7" data-slot-code="A7">Slot 7</button>
+          <button class="slot available" data-slot-id="Slot 8" data-slot-code="A8">Slot 8</button>
+          <button class="slot available" data-slot-id="Slot 9" data-slot-code="A9">Slot 9</button>
+          <button class="slot available" data-slot-id="Slot 10" data-slot-code="A10">Slot 10</button>
+        </div>
+      </div>
+
+      <form class="payment-section">
+        <input
+          type="text"
+          id="plate-number"
+          class="input-field"
+          placeholder="Enter your plate number"
+          required
+        />
+        <input
+          type="text"
+          id="vehicle-model"
+          class="input-field"
+          placeholder="Enter your vehicle model"
+          required
+        />
+        <button type="submit" class="confirm-btn">Confirm & Pay</button>
+      </form>
+    </div>
+
+    <script src="./js/config.js"></script>
+    <script>
+      const generateTransactionId = () => {
+          return 'TRX-' + Date.now() + Math.floor(Math.random() * 999);
+      };
+
+      const totalSlots = 10;
+      
+      async function getSlotStates() {
+          try {
+              const response = await fetchData('/parkingSlots', 'GET');
+
+              return response.parking_slots;
+          } catch (error) {
+              console.error('Error fetching slot states from API:', error);
+          }
+          // const storedState = localStorage.getItem('parkflowSlotStates');
+          // return storedState ? JSON.parse(storedState) : Array(totalSlots).fill({ status: 'available' });
+      }
+
+      const showFeedback = (message, isError = true) => {
+          const topBar = document.querySelector('.top-bar');
+          const feedbackMsg = document.createElement('div');
+          feedbackMsg.textContent = message;
+          feedbackMsg.style.cssText = `position: fixed; top: 100px; left: 50%; transform: translateX(-50%); background: ${isError ? '#e76f51' : '#38b000'}; color: white; padding: 15px 30px; border-radius: 8px; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.4); font-weight: bold;`;
+          document.body.appendChild(feedbackMsg);
+
+          // Add error state to top bar
+          if (isError) {
+              topBar.classList.add('error-state');
+          }
+
+          setTimeout(() => {
+              feedbackMsg.remove();
+              if (isError) {
+                  topBar.classList.remove('error-state'); 
+              }
+          }, 3000);
+      };
+
+      async function saveTransaction(transaction) {
+          try {
+              await fetchData('/addTransaction', 'POST', transaction);
+          } catch (error) {
+              console.error('Error saving transaction to API:', error);
+          }
+      }
+
+      async function loadSlotStatus() {
+          const states = await getSlotStates();
+          const slotButtons = document.querySelectorAll(".slot");
+          
+          slotButtons.forEach((slot) => {
+              const slotCode = slot.getAttribute('data-slot-code');
+              const state = states.find(s => s.slot_number === slotCode);
+              
+              if (!state) {
+                  console.error(`Slot ${slotCode} not found in API response`);
+                  return;
+              }
+              
+              slot.classList.remove('available', 'taken', 'selected');
+              slot.classList.add(state.status);
+              
+              if (state.status === 'taken') {
+                  slot.disabled = true;
+              } else {
+                  slot.disabled = false;
+                  slot.classList.add('available');
+              }
+          });
+      }
+
+      const rates = document.querySelectorAll(".available-rate");
+      let selectedRate = null;
+      rates.forEach((rate) => {
+          rate.addEventListener("click", () => {
+              rates.forEach((r) => r.classList.remove("selected"));
+              rate.classList.add("selected");
+              selectedRate = rate;
+          });
+      });
+      
+      const slots = document.querySelectorAll(".slot");
+      let selectedSlot = null;
+      slots.forEach((slot) => {
+          slot.addEventListener("click", () => {
+              if (slot.classList.contains('taken')) {
+                  showFeedback(`Slot ${slot.textContent} is already TAKEN. Please select another slot.`, true);
+                  slots.forEach((s) => s.classList.remove("selected"));
+                  selectedSlot = null;
+                  return;
+              }
+              
+              slots.forEach((s) => s.classList.remove("selected"));
+              slot.classList.add("selected");
+              selectedSlot = slot;
+          });
+      });
+      
+      const form = document.querySelector(".payment-section");
+      
+      form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          if (!form.checkValidity()) {
+              form.reportValidity();
+              return;
+          }
+
+          if (!selectedRate || !selectedSlot) {
+              showFeedback("Please select a parking rate and an available slot.", true);
+              return;
+          }
+
+          const slotNumberText = selectedSlot.getAttribute('data-slot-id') || selectedSlot.textContent.match(/Slot \d+/)[0];
+          const slotCode = selectedSlot.getAttribute('data-slot-code');
+          const slotId = parseInt(slotNumberText.match(/\d+/)[0]);
+          const states = await getSlotStates();
+          const currentSlotState = states.find(s => s.slot_number === slotCode);
+
+          if (!currentSlotState) {
+              showFeedback(`Slot ${slotNumberText} not found. Please try again.`, true);
+              return;
+          }
+
+          if (currentSlotState.status === 'taken') {
+              showFeedback(`Slot ${slotNumberText} is no longer available. Please select another slot.`, true);
+              selectedSlot.classList.remove("selected");
+              selectedSlot = null;
+              await loadSlotStatus();
+              return;
+          }
+          
+          const plate = document.getElementById("plate-number").value.toUpperCase().trim();
+          const vehicle = document.getElementById("vehicle-model").value.trim();
+          const durationText = selectedRate.querySelector('span').textContent.split(':')[0].trim();
+          const duration = parseInt(selectedRate.getAttribute('data-duration'));
+          const price = parseFloat(selectedRate.getAttribute('data-price'));
+          const transactionId = generateTransactionId();
+          const timestamp = new Date().toISOString();
+
+          const transaction = {
+              id: transactionId,
+              timestamp: timestamp,
+              plateNumber: plate,
+              vehicleModel: vehicle,
+              slotNumber: slotNumberText,
+              slotCode: slotCode,
+              duration: durationText,
+              price: price,
+              status: 'Paid',
+          };
+          
+          let transactions = [];
+          try {
+              const storedTransactions = localStorage.getItem('parkflowTransactions');
+              if (storedTransactions) {
+                  transactions = JSON.parse(storedTransactions);
+              }
+          } catch (error) {
+              console.error("Error loading transactions from localStorage:", error);
+          }
+          
+          // transactions.push(transaction);
+          // localStorage.setItem('parkflowTransactions', JSON.stringify(transactions));
+          await saveTransaction(transaction);
+
+          showFeedback("Payment Successful! Redirecting to receipt...", false);
+
+          const receiptData = {
+              transactionId: transactionId,
+              plateNumber: plate,
+              vehicleModel: vehicle,
+              slotNumber: slotNumberText,
+              parkingHours: duration, 
+              totalAmount: price,
+          };
+          
+          localStorage.setItem('currentTransaction', JSON.stringify(receiptData));
+          window.location.href = "receipt.html";
+      });
+
+      document.addEventListener("DOMContentLoaded", loadSlotStatus);
+
+      
+    </script>
+  </body>
+</html>

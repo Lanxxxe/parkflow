@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="dashboard.css" />
+    <title>ParkFlow Dashboard</title>
+  </head>
+ 
+  <body>
+    <div class="top-bar">
+      <div class="logo-container">
+        <img src="assets/car-logo.png" class="car-logo" />
+        <span class="title">PARKFLOW</span>
+      </div>
+
+      <a href="AdminLiveMap.html" class="back-btn">Back</a>
+    </div>
+
+    <div class="container">
+      <div class="card large">
+        <h2 class="title-monthly-earning">MONTHLY EARNINGS</h2>
+        <p class="value value-monthly-earning">₱0.00</p>
+      </div>
+
+      <div class="card medium">
+        <h2 class="title-daily-earning">DAILY EARNINGS</h2>
+        <p class="value value-daily-earning">₱0.00</p>
+      </div>
+
+      <div class="card medium">
+        <h2 class="title-monthly-transaction">MONTHLY TRANSACTION</h2>
+        <p class="value value-monthly-transaction">0</p>
+      </div>
+
+      <div class="circle-section">
+        <h3 class="slots-label">Parking Slots</h3>
+
+        <div class="circle green">
+          <p class="circle-value">10</p>
+          <span class="circle-label">AVAILABILITY</span>
+        </div>
+
+        <div class="circle orange">
+          <p class="circle-value">0</p>
+          <span class="circle-label">OCCUPANCY</span>
+        </div>
+      </div>
+    </div>
+    
+    <script src="./js/config.js"></script>
+    <script>
+      const TOTAL_SLOTS = 10;
+      
+      function getSlotStates() {
+            const storedState = localStorage.getItem('parkflowSlotStates');
+            return storedState ? JSON.parse(storedState) : Array(TOTAL_SLOTS).fill({ status: 'available' });
+      }
+
+      async function getDashboardMetrics () {
+        try {
+          const response = await fetchData('/metrics', 'GET');
+          console.log('Dashboard metrics from API:', response);
+          return response;
+        } catch (error) {
+          console.error('Error fetching dashboard metrics from API:', error);
+          return null;
+        }
+      }
+      
+      async function calculateDashboardData() {
+        const transactionsJson = localStorage.getItem('parkflowTransactions');
+        const transactions = transactionsJson ? JSON.parse(transactionsJson) : [];
+
+        // Transactions from Database
+        const dashboardMetricsItems = await getDashboardMetrics();
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+        
+        let dailyEarnings = 0;
+        let monthlyEarnings = 0;
+        let monthlyTransactions = 0;
+
+        transactions.forEach(transaction => {
+          const transactionDate = new Date(transaction.timestamp);
+          const price = transaction.price || 0;
+
+          if (transactionDate >= today) {
+            dailyEarnings += price;
+          }
+
+          if (transactionDate.getMonth() === currentMonth && transactionDate.getFullYear() === currentYear) {
+            monthlyEarnings += price;
+            monthlyTransactions++;
+          }
+        });
+        
+        const slotStates = getSlotStates();
+        const totalOccupiedSlots = slotStates.filter(state => state.status === 'taken').length;
+        const availability = TOTAL_SLOTS - totalOccupiedSlots;
+        const occupancy = totalOccupiedSlots;
+        
+        
+        const formatCurrency = (amount) => {
+          return new Intl.NumberFormat("en-PH", {
+            style: "currency",
+            currency: "PHP",
+            minimumFractionDigits: 2,
+          }).format(amount);
+        };
+
+        document.querySelector(".value-monthly-earning").textContent = formatCurrency(dashboardMetricsItems ? dashboardMetricsItems.metrics.monthly_earnings : monthlyEarnings);
+        document.querySelector(".value-daily-earning").textContent = formatCurrency(dashboardMetricsItems ? dashboardMetricsItems.metrics.daily_earnings : dailyEarnings);
+        document.querySelector(".value-monthly-transaction").textContent = dashboardMetricsItems ? dashboardMetricsItems.metrics.monthly_transactions : monthlyTransactions;
+        
+        document.querySelector(".circle.green .circle-value").textContent = dashboardMetricsItems ? dashboardMetricsItems.metrics.available_slots : availability;
+        document.querySelector(".circle.orange .circle-value").textContent = dashboardMetricsItems ? dashboardMetricsItems.metrics.taken_slots : occupancy;
+        
+        const availabilityCircle = document.querySelector(".circle.green");
+        if (availability === 0) {
+            availabilityCircle.classList.remove('green');
+            availabilityCircle.classList.add('red');
+        } else {
+            availabilityCircle.classList.remove('red');
+            availabilityCircle.classList.add('green');
+        }
+        
+      }
+
+      document.addEventListener("DOMContentLoaded", calculateDashboardData);
+
+      
+    </script>
+  </body>
+</html>
