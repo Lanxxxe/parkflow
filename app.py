@@ -1,8 +1,11 @@
 from flask import Flask, request, jsonify
 from werkzeug.security import generate_password_hash
+from sqlalchemy import func, extract
+    
 from sqlalchemy.exc import IntegrityError
 from models import ParkingSlot, Transaction, Users, db
 from flask_cors import CORS
+from datetime import datetime, timezone
 
 import os
 
@@ -116,6 +119,51 @@ def register_db():
             "message": "Data already exists"
         }), 409
 
+@app.route('/metrics', methods=['GET'])
+def get_metrics():
+
+    # Current date info
+    now = datetime.now(timezone.utc)
+    current_year = now.year
+    current_month = now.month
+    today = now.date()
+    
+    # 1. Monthly Earnings - sum of amount_paid for completed transactions this month
+    monthly_earnings = db.session.query(func.sum(Transaction.amount_paid)).filter(
+        extract('year', Transaction.created_at) == current_year,
+        extract('month', Transaction.created_at) == current_month,
+        Transaction.status == 'Paid'
+    ).scalar() or 0
+    
+    # 2. Daily Earnings - sum of amount_paid for completed transactions today
+    daily_earnings = db.session.query(func.sum(Transaction.amount_paid)).filter(
+        func.date(Transaction.created_at) == today,
+        Transaction.status == 'Paid'
+    ).scalar() or 0
+    
+    # 3. Monthly Transactions
+    monthly_transactions = db.session.query(func.count(Transaction.id)).filter(
+        extract('year', Transaction.created_at) == current_year,
+        extract('month', Transaction.created_at) == current_month
+    ).scalar() or 0
+    
+    # 4. Number of Available parking slots
+    available_slots = ParkingSlot.query.filter_by(status='available').count()
+    
+    # 5. Number of Taken parking slots
+    taken_slots = ParkingSlot.query.filter_by(status='taken').count()
+    
+    return jsonify({
+        "success": True,
+        "metrics": {
+            "monthly_earnings": float(monthly_earnings),
+            "daily_earnings": float(daily_earnings),
+            "monthly_transactions": monthly_transactions,
+            "available_slots": available_slots,
+            "taken_slots": taken_slots,
+            "total_slots": available_slots + taken_slots
+        }
+    }), 200
 
 @app.route('/parkingSlots', methods=['GET'])
 def get_parking_slots():
@@ -127,9 +175,10 @@ def get_parking_slots():
             'status': slot.status,
         } for slot in slots
     ]
+    
     return jsonify({
         "success": True,
-        "parking_slots": slots_data
+        "parking_slots": sorted(slots_data, key=lambda x: x['slot_number'])
     }), 200
 
 
@@ -137,16 +186,16 @@ def get_parking_slots():
 def update_slot_status():
     print(request.json)
     data = request.get_json()
-    slot_id = data.get('slot_id')
+    slot_number = data.get('slot_number')
     status = data.get('status')
-    print(slot_id, status)
-    if slot_id is None or status is None:
+    print(slot_number, status)
+    if slot_number is None or status is None:
         return jsonify({
             "success": False,
-            "message": "slot_id and status are required"
+            "message": "slot_number and status are required"
         }), 400
 
-    slot = ParkingSlot.update_slot_status(slot_id, status)
+    slot = ParkingSlot.update_slot_status(slot_number, status)
     if slot:
         return jsonify({
             "success": True,

@@ -38,8 +38,8 @@ class ParkingSlot(db.Model):
         return new_slot
     
     @classmethod
-    def update_slot_status(cls, slot_id, status):
-        slot = cls.query.get(slot_id)
+    def update_slot_status(cls, slot_number, status):
+        slot = cls.query.filter_by(slot_number=slot_number).first()
         if slot:
             slot.status = status
             db.session.commit()
@@ -91,6 +91,7 @@ class Transaction(db.Model):
             vehicle_model=vehicle_model,
             slot_id=slot_id,
             duration=duration,
+            amount_paid=rate,
             rate=rate,
             status=status
         )
